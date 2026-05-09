@@ -5,6 +5,18 @@ import { requireAuth, type AuthRequest } from "../lib/auth";
 
 const router: IRouter = Router();
 
+router.get("/doctors", requireAuth, async (_req, res): Promise<void> => {
+  const doctors = await db.select({
+    id: usersTable.id,
+    name: usersTable.name,
+    email: usersTable.email,
+    phone: usersTable.phone,
+    role: usersTable.role,
+    createdAt: usersTable.createdAt,
+  }).from(usersTable).where(eq(usersTable.role, "doctor"));
+  res.json(doctors);
+});
+
 router.get("/patients", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const patients = await db.select().from(usersTable).where(eq(usersTable.role, "patient"));
 

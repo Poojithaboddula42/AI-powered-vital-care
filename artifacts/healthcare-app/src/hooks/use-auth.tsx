@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useLocation } from "wouter";
-import { User, LoginInput, RegisterInput, RegisterInputRole } from "@workspace/api-client-react";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
+import type { User, LoginInput, RegisterInput } from "@workspace/api-client-react";
+
+setAuthTokenGetter(() => localStorage.getItem("healthcare_token"));
 
 interface AuthContextType {
   user: User | null;
@@ -19,61 +22,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("healthcare_user");
-    if (storedUser) {
+    const storedToken = localStorage.getItem("healthcare_token");
+    if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Failed to parse stored user", e);
+      } catch {
+        localStorage.removeItem("healthcare_user");
+        localStorage.removeItem("healthcare_token");
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (data: LoginInput) => {
-    // Mock login logic
-    let mockUser: User | null = null;
-    
-    if (data.email === "patient@demo.com") {
-      mockUser = { id: 1, name: "Demo Patient", email: data.email, role: "patient", phone: "555-0101" };
-    } else if (data.email === "doctor@demo.com") {
-      mockUser = { id: 2, name: "Dr. Smith", email: data.email, role: "doctor", phone: "555-0102" };
-    } else if (data.email === "admin@demo.com") {
-      mockUser = { id: 3, name: "Admin", email: data.email, role: "hospital_admin", phone: "555-0103" };
-    } else {
-      // Allow any login for testing
-      mockUser = { id: Math.floor(Math.random() * 1000), name: data.email.split('@')[0], email: data.email, role: "patient" };
-    }
-
-    localStorage.setItem("healthcare_user", JSON.stringify(mockUser));
-    setUser(mockUser);
-    
-    // Redirect based on role
-    if (mockUser.role === "patient") setLocation("/patient");
-    else if (mockUser.role === "doctor") setLocation("/doctor");
-    else if (mockUser.role === "hospital_admin") setLocation("/hospital-admin");
+  const redirectByRole = (role: string) => {
+    if (role === "patient") setLocation("/patient");
+    else if (role === "doctor") setLocation("/doctor");
+    else if (role === "caretaker") setLocation("/patient");
+    else if (role === "hospital_admin") setLocation("/hospital-admin");
     else setLocation("/");
   };
 
+  const login = async (data: LoginInput) => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || "Invalid credentials");
+    }
+
+    const { token, user: newUser } = await response.json();
+    localStorage.setItem("healthcare_token", token);
+    localStorage.setItem("healthcare_user", JSON.stringify(newUser));
+    setUser(newUser);
+    redirectByRole(newUser.role);
+  };
+
   const register = async (data: RegisterInput) => {
-    const mockUser: User = {
-      id: Math.floor(Math.random() * 1000),
-      name: data.name,
-      email: data.email,
-      role: data.role as any,
-      phone: data.phone,
-      caretakerPhone: data.caretakerPhone,
-    };
-    localStorage.setItem("healthcare_user", JSON.stringify(mockUser));
-    setUser(mockUser);
-    
-    if (mockUser.role === "patient") setLocation("/patient");
-    else if (mockUser.role === "doctor") setLocation("/doctor");
-    else if (mockUser.role === "hospital_admin") setLocation("/hospital-admin");
-    else setLocation("/");
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || "Registration failed");
+    }
+
+    const { token, user: newUser } = await response.json();
+    localStorage.setItem("healthcare_token", token);
+    localStorage.setItem("healthcare_user", JSON.stringify(newUser));
+    setUser(newUser);
+    redirectByRole(newUser.role);
   };
 
   const logout = () => {
     localStorage.removeItem("healthcare_user");
+    localStorage.removeItem("healthcare_token");
     setUser(null);
     setLocation("/login");
   };
