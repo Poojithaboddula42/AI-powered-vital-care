@@ -8,6 +8,11 @@ import analyticsRouter from "./analytics";
 import patientsRouter from "./patients";
 import hospitalsRouter from "./hospitals";
 import aiRouter from "./ai";
+import insightsRouter from "./insights";
+import schemesRouter from "./schemes";
+import ambulanceRouter from "./ambulance";
+import bloodDonorsRouter from "./blood-donors";
+import reportRouter from "./report";
 
 const router: IRouter = Router();
 
@@ -20,5 +25,10 @@ router.use(analyticsRouter);
 router.use(patientsRouter);
 router.use(hospitalsRouter);
 router.use(aiRouter);
+router.use(insightsRouter);
+router.use(schemesRouter);
+router.use(ambulanceRouter);
+router.use(bloodDonorsRouter);
+router.use(reportRouter);
 
 export default router;

@@ -13,7 +13,12 @@ import {
   LayoutDashboard,
   BarChart3,
   History,
-  HeartPulse
+  HeartPulse,
+  Brain,
+  Landmark,
+  Ambulance,
+  Droplets,
+  Bed,
 } from "lucide-react";
 
 interface NavItem {
@@ -33,10 +38,14 @@ export function Sidebar() {
     { title: "Record Vitals", href: "/patient/vitals", icon: HeartPulse },
     { title: "History", href: "/patient/history", icon: History },
     { title: "Analytics", href: "/patient/analytics", icon: BarChart3 },
+    { title: "AI Insights", href: "/patient/insights", icon: Brain },
+    { title: "AI Assistant", href: "/patient/ai-assistant", icon: MessageSquare },
     { title: "Alerts", href: "/patient/alerts", icon: AlertTriangle },
     { title: "Appointments", href: "/patient/appointments", icon: Calendar },
     { title: "Hospitals", href: "/patient/hospitals", icon: Building2 },
-    { title: "AI Assistant", href: "/patient/ai-assistant", icon: MessageSquare },
+    { title: "Ambulance", href: "/patient/ambulance", icon: Ambulance },
+    { title: "Blood Donation", href: "/patient/blood-donation", icon: Droplets },
+    { title: "Govt Schemes", href: "/patient/schemes", icon: Landmark },
     { title: "Settings", href: "/patient/settings", icon: Settings },
   ];
 
@@ -54,6 +63,7 @@ export function Sidebar() {
     { title: "Doctors", href: "/hospital-admin/doctors", icon: Users },
     { title: "Patients", href: "/hospital-admin/patients", icon: Activity },
     { title: "Appointments", href: "/hospital-admin/appointments", icon: Calendar },
+    { title: "Bed Management", href: "/hospital-admin/bed-management", icon: Bed },
     { title: "Analytics", href: "/hospital-admin/analytics", icon: BarChart3 },
     { title: "Hospitals", href: "/hospital-admin/hospitals", icon: Building2 },
     { title: "Settings", href: "/hospital-admin/settings", icon: Settings },

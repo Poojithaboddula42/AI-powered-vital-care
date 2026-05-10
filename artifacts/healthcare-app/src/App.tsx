@@ -21,6 +21,10 @@ import PatientAppointments from "@/pages/patient/appointments";
 import PatientHospitals from "@/pages/patient/hospitals";
 import AiAssistant from "@/pages/patient/ai-assistant";
 import PatientSettings from "@/pages/patient/settings";
+import AiInsights from "@/pages/patient/insights";
+import GovtSchemes from "@/pages/patient/schemes";
+import AmbulanceTracking from "@/pages/patient/ambulance";
+import BloodDonation from "@/pages/patient/blood-donation";
 
 // Doctor
 import DoctorDashboard from "@/pages/doctor/dashboard";
@@ -38,6 +42,7 @@ import AdminAppointments from "@/pages/hospital-admin/appointments";
 import AdminAnalytics from "@/pages/hospital-admin/analytics";
 import AdminHospitals from "@/pages/hospital-admin/hospitals";
 import AdminSettings from "@/pages/hospital-admin/settings";
+import AdminBedManagement from "@/pages/hospital-admin/bed-management";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,6 +88,18 @@ function Router() {
         <Route path="/patient/settings">
           <ProtectedRoute allowedRoles={["patient"]}><PatientSettings /></ProtectedRoute>
         </Route>
+        <Route path="/patient/insights">
+          <ProtectedRoute allowedRoles={["patient"]}><AiInsights /></ProtectedRoute>
+        </Route>
+        <Route path="/patient/schemes">
+          <ProtectedRoute allowedRoles={["patient"]}><GovtSchemes /></ProtectedRoute>
+        </Route>
+        <Route path="/patient/ambulance">
+          <ProtectedRoute allowedRoles={["patient"]}><AmbulanceTracking /></ProtectedRoute>
+        </Route>
+        <Route path="/patient/blood-donation">
+          <ProtectedRoute allowedRoles={["patient"]}><BloodDonation /></ProtectedRoute>
+        </Route>
 
         <Route path="/doctor">
           <ProtectedRoute allowedRoles={["doctor"]}><DoctorDashboard /></ProtectedRoute>
@@ -123,6 +140,9 @@ function Router() {
         </Route>
         <Route path="/hospital-admin/settings">
           <ProtectedRoute allowedRoles={["hospital_admin"]}><AdminSettings /></ProtectedRoute>
+        </Route>
+        <Route path="/hospital-admin/bed-management">
+          <ProtectedRoute allowedRoles={["hospital_admin"]}><AdminBedManagement /></ProtectedRoute>
         </Route>
 
         <Route component={NotFound} />
