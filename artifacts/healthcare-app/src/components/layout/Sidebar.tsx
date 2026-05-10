@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useLanguage } from "@/contexts/language-context";
+import type { Language } from "@/contexts/language-context";
 import {
   Activity,
   AlertTriangle,
@@ -19,10 +21,12 @@ import {
   Ambulance,
   Droplets,
   Bed,
+  Globe,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface NavItem {
-  title: string;
+  titleKey: string;
   href: string;
   icon: React.ElementType;
 }
@@ -30,43 +34,44 @@ interface NavItem {
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
 
   if (!user) return null;
 
   const patientNav: NavItem[] = [
-    { title: "Dashboard", href: "/patient", icon: LayoutDashboard },
-    { title: "Record Vitals", href: "/patient/vitals", icon: HeartPulse },
-    { title: "History", href: "/patient/history", icon: History },
-    { title: "Analytics", href: "/patient/analytics", icon: BarChart3 },
-    { title: "AI Insights", href: "/patient/insights", icon: Brain },
-    { title: "AI Assistant", href: "/patient/ai-assistant", icon: MessageSquare },
-    { title: "Alerts", href: "/patient/alerts", icon: AlertTriangle },
-    { title: "Appointments", href: "/patient/appointments", icon: Calendar },
-    { title: "Hospitals", href: "/patient/hospitals", icon: Building2 },
-    { title: "Ambulance", href: "/patient/ambulance", icon: Ambulance },
-    { title: "Blood Donation", href: "/patient/blood-donation", icon: Droplets },
-    { title: "Govt Schemes", href: "/patient/schemes", icon: Landmark },
-    { title: "Settings", href: "/patient/settings", icon: Settings },
+    { titleKey: "dashboard", href: "/patient", icon: LayoutDashboard },
+    { titleKey: "recordVitals", href: "/patient/vitals", icon: HeartPulse },
+    { titleKey: "history", href: "/patient/history", icon: History },
+    { titleKey: "analytics", href: "/patient/analytics", icon: BarChart3 },
+    { titleKey: "aiInsights", href: "/patient/insights", icon: Brain },
+    { titleKey: "aiAssistant", href: "/patient/ai-assistant", icon: MessageSquare },
+    { titleKey: "alerts", href: "/patient/alerts", icon: AlertTriangle },
+    { titleKey: "appointments", href: "/patient/appointments", icon: Calendar },
+    { titleKey: "hospitals", href: "/patient/hospitals", icon: Building2 },
+    { titleKey: "ambulance", href: "/patient/ambulance", icon: Ambulance },
+    { titleKey: "bloodDonation", href: "/patient/blood-donation", icon: Droplets },
+    { titleKey: "govtSchemes", href: "/patient/schemes", icon: Landmark },
+    { titleKey: "settings", href: "/patient/settings", icon: Settings },
   ];
 
   const doctorNav: NavItem[] = [
-    { title: "Dashboard", href: "/doctor", icon: LayoutDashboard },
-    { title: "Patients", href: "/doctor/patients", icon: Users },
-    { title: "Appointments", href: "/doctor/appointments", icon: Calendar },
-    { title: "Alerts", href: "/doctor/alerts", icon: AlertTriangle },
-    { title: "Hospitals", href: "/doctor/hospitals", icon: Building2 },
-    { title: "Settings", href: "/doctor/settings", icon: Settings },
+    { titleKey: "dashboard", href: "/doctor", icon: LayoutDashboard },
+    { titleKey: "patients", href: "/doctor/patients", icon: Users },
+    { titleKey: "appointments", href: "/doctor/appointments", icon: Calendar },
+    { titleKey: "alerts", href: "/doctor/alerts", icon: AlertTriangle },
+    { titleKey: "hospitals", href: "/doctor/hospitals", icon: Building2 },
+    { titleKey: "settings", href: "/doctor/settings", icon: Settings },
   ];
 
   const adminNav: NavItem[] = [
-    { title: "Dashboard", href: "/hospital-admin", icon: LayoutDashboard },
-    { title: "Doctors", href: "/hospital-admin/doctors", icon: Users },
-    { title: "Patients", href: "/hospital-admin/patients", icon: Activity },
-    { title: "Appointments", href: "/hospital-admin/appointments", icon: Calendar },
-    { title: "Bed Management", href: "/hospital-admin/bed-management", icon: Bed },
-    { title: "Analytics", href: "/hospital-admin/analytics", icon: BarChart3 },
-    { title: "Hospitals", href: "/hospital-admin/hospitals", icon: Building2 },
-    { title: "Settings", href: "/hospital-admin/settings", icon: Settings },
+    { titleKey: "dashboard", href: "/hospital-admin", icon: LayoutDashboard },
+    { titleKey: "doctors", href: "/hospital-admin/doctors", icon: Users },
+    { titleKey: "patients", href: "/hospital-admin/patients", icon: Activity },
+    { titleKey: "appointments", href: "/hospital-admin/appointments", icon: Calendar },
+    { titleKey: "bedManagement", href: "/hospital-admin/bed-management", icon: Bed },
+    { titleKey: "analytics", href: "/hospital-admin/analytics", icon: BarChart3 },
+    { titleKey: "hospitals", href: "/hospital-admin/hospitals", icon: Building2 },
+    { titleKey: "settings", href: "/hospital-admin/settings", icon: Settings },
   ];
 
   let navItems: NavItem[] = [];
@@ -85,8 +90,6 @@ export function Sidebar() {
         <nav className="space-y-1 px-3">
           {navItems.map((item) => {
             const isActive = location === item.href || (location.startsWith(item.href) && item.href !== "/patient" && item.href !== "/doctor" && item.href !== "/hospital-admin");
-            
-            // Special handling for exact dashboard match
             const isExactMatch = location === item.href;
             const isReallyActive = (item.href === "/patient" || item.href === "/doctor" || item.href === "/hospital-admin") ? isExactMatch : isActive;
 
@@ -107,7 +110,7 @@ export function Sidebar() {
                     )}
                     aria-hidden="true"
                   />
-                  {item.title}
+                  {t(item.titleKey as Parameters<typeof t>[0])}
                 </div>
               </Link>
             );
@@ -115,7 +118,21 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="border-t border-sidebar-border p-4">
+      <div className="border-t border-sidebar-border p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4 text-sidebar-foreground/50 shrink-0" />
+          <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+            <SelectTrigger className="h-8 text-xs bg-sidebar-accent/30 border-sidebar-border text-sidebar-foreground/80 flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="te">తెలుగు</SelectItem>
+              <SelectItem value="hi">हिंदी</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-center">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary/20 text-sidebar-primary">
             {user.name.charAt(0).toUpperCase()}
@@ -127,10 +144,10 @@ export function Sidebar() {
         </div>
         <button
           onClick={logout}
-          className="mt-4 flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-destructive"
+          className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-destructive"
         >
           <LogOut className="mr-3 h-4 w-4" />
-          Sign out
+          {t("signOut")}
         </button>
       </div>
     </div>

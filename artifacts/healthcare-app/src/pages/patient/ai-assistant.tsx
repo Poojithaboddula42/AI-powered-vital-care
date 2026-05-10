@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Bot, User as UserIcon, Send, Sparkles, Loader2, Mic, MicOff, Phone, FileText, Activity, Stethoscope } from "lucide-react";
+import { Bot, User as UserIcon, Send, Sparkles, Loader2, Mic, MicOff, Phone, FileText, Activity, Stethoscope, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +30,7 @@ export default function AiAssistant() {
   const { toast } = useToast();
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -58,6 +59,34 @@ export default function AiAssistant() {
       setMessages(prev => [...prev, { role: "assistant", content: res.reply, timestamp: new Date() }]);
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "I'm sorry, I couldn't connect to the medical knowledge base right now. Please try again.", timestamp: new Date() }]);
+    }
+  };
+
+  const handleGetReport = async () => {
+    setIsDownloading(true);
+    try {
+      const token = localStorage.getItem("healthcare_token");
+      const res = await fetch("/api/generate-report", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || "Failed to generate report");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `VitalCare_Report_${user?.name?.replace(/\s+/g, "_") || "Patient"}_${new Date().toISOString().slice(0, 10)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Report downloaded", description: "Your health report has been downloaded successfully." });
+    } catch (err) {
+      toast({ title: "Report failed", description: err instanceof Error ? err.message : "Could not generate report. Please try again.", variant: "destructive" });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -125,9 +154,19 @@ export default function AiAssistant() {
             <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
             Online
           </Badge>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => window.open("/api/generate-report", "_blank")}>
-            <FileText className="h-3.5 w-3.5" />
-            Get Report
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={handleGetReport}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            {isDownloading ? "Generating..." : "Get Report"}
           </Button>
         </div>
       </div>
@@ -151,6 +190,18 @@ export default function AiAssistant() {
           <div>
             <p className="text-sm font-semibold">VitalCare AI</p>
             <p className="text-xs text-muted-foreground">Medical AI Assistant • Always available</p>
+          </div>
+          <div className="ml-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs text-muted-foreground hover:text-primary"
+              onClick={handleGetReport}
+              disabled={isDownloading}
+            >
+              {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              {isDownloading ? "Generating..." : "Download PDF Report"}
+            </Button>
           </div>
         </div>
 
