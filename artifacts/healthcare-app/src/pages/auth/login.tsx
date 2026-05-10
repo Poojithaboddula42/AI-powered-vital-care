@@ -1,26 +1,27 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Activity, Loader2 } from "lucide-react";
+import { Activity, Loader2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
-  const [, setLocation] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     try {
       await login({ email, password });
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -29,11 +30,11 @@ export default function Login() {
   const fillDemo = (role: string) => {
     setEmail(`${role}@demo.com`);
     setPassword("demo123");
+    setError(null);
   };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel - illustration */}
       <div className="hidden lg:flex w-1/2 bg-sidebar flex-col justify-center px-16 text-sidebar-foreground">
         <div className="max-w-md">
           <Activity className="h-12 w-12 text-sidebar-primary mb-8" />
@@ -46,7 +47,6 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Right panel - form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md space-y-8">
           <div className="lg:hidden flex justify-center mb-8">
@@ -60,31 +60,34 @@ export default function Login() {
             </CardHeader>
             <CardContent className="px-0">
               <form onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                  <div className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
+                  <Input
+                    id="email"
+                    type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com" 
-                    required 
+                    onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                    placeholder="name@example.com"
+                    required
                     className="h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
-                    <a href="#" className="text-sm font-medium text-primary hover:underline">
-                      Forgot password?
-                    </a>
                   </div>
-                  <Input 
-                    id="password" 
-                    type="password" 
+                  <Input
+                    id="password"
+                    type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required 
+                    onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                    required
                     className="h-11"
                   />
                 </div>
