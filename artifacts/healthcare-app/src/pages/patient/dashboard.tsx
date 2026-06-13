@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/contexts/language-context";
-import { useGetDashboardData, useGetLatestVitals } from "@workspace/api-client-react";
+import { useGetDashboardData, useGetLatestVitals, useGetVitals, useAiEmergencyAssessment } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Activity, HeartPulse, Droplets, Thermometer, Flame, Siren } from "lucide-react";
+import { Activity, HeartPulse, Droplets, Thermometer, Flame, Siren, Sparkles, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EmergencyAlertDialog } from "@/components/emergency-alert-dialog";
+import { GeminiConfidenceBadge } from "@/components/ai/gemini-confidence-badge";
+import { mapVitalToAiMeasurement } from "@/lib/ai-vitals";
+import type { AiEmergencyAssessmentOutput } from "@workspace/api-client-react";
 
 export default function PatientDashboard() {
   const { user } = useAuth();
@@ -17,8 +20,23 @@ export default function PatientDashboard() {
 
   const { data: dashboardData, isLoading: isLoadingDash } = useGetDashboardData({ userId: user?.id, role: "patient" });
   const { data: latestVitals, isLoading: isLoadingVitals } = useGetLatestVitals({ userId: user?.id });
+  const { data: recentVitals } = useGetVitals({ userId: user?.id, limit: 7 });
+  const emergencyMutation = useAiEmergencyAssessment();
+  const [emergencyAssessment, setEmergencyAssessment] = useState<AiEmergencyAssessmentOutput | null>(null);
 
   const isLoading = isLoadingDash || isLoadingVitals;
+
+  const runEmergencyAssessment = async () => {
+    if (!latestVitals) return;
+    const result = await emergencyMutation.mutateAsync({
+      data: {
+        currentVitals: mapVitalToAiMeasurement(latestVitals),
+        profile: { name: user?.name, location: "India" },
+        historicalTrends: (recentVitals ?? []).map(mapVitalToAiMeasurement),
+      },
+    });
+    setEmergencyAssessment(result);
+  };
 
   const emergencyContact = (() => {
     try {
@@ -53,9 +71,13 @@ export default function PatientDashboard() {
             variant="outline"
             size="sm"
             className="gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
-            onClick={() => setEmergencyOpen(true)}
+            onClick={() => {
+              setEmergencyOpen(true);
+              void runEmergencyAssessment();
+            }}
+            disabled={!latestVitals || emergencyMutation.isPending}
           >
-            <Siren className="h-4 w-4" />
+            {emergencyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Siren className="h-4 w-4" />}
             {t("emergency")}
           </Button>
           <div className="flex items-center gap-3 bg-card p-3 rounded-lg border shadow-sm">
@@ -126,6 +148,34 @@ export default function PatientDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {emergencyAssessment && (
+        <Card className={cn(
+          "border-2",
+          emergencyAssessment.severity === "CRITICAL" && "border-red-500 bg-red-50 dark:bg-red-950/20",
+          emergencyAssessment.severity === "HIGH" && "border-orange-500 bg-orange-50 dark:bg-orange-950/20",
+          emergencyAssessment.severity === "MEDIUM" && "border-amber-500 bg-amber-50 dark:bg-amber-950/20",
+          emergencyAssessment.severity === "LOW" && "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20",
+        )}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                AI Emergency Risk Assessment
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{emergencyAssessment.severity}</Badge>
+                <GeminiConfidenceBadge confidence={emergencyAssessment.confidence} fallback={emergencyAssessment.fallback} />
+              </div>
+            </div>
+            <CardDescription>Risk Score: {emergencyAssessment.riskScore}/100</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>{emergencyAssessment.explanation}</p>
+            <p className="font-medium">{emergencyAssessment.recommendedAction}</p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4 shadow-sm">

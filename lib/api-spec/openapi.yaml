@@ -378,6 +378,31 @@ paths:
       operationId: getHospitals
       tags: [hospitals]
       summary: Get hospitals list
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: city
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: specialty
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: hasBeds
+          in: query
+          schema:
+            type: ["boolean", "null"]
+        - name: hasIcu
+          in: query
+          schema:
+            type: ["boolean", "null"]
+        - name: emergencyAvailable
+          in: query
+          schema:
+            type: ["boolean", "null"]
       responses:
         "200":
           description: List of hospitals
@@ -387,6 +412,169 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Hospital"
+    post:
+      operationId: createHospital
+      tags: [hospitals]
+      summary: Create a hospital
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HospitalInput"
+      responses:
+        "201":
+          description: Hospital created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hospital"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /hospitals/{hospitalId}:
+    get:
+      operationId: getHospital
+      tags: [hospitals]
+      summary: Get hospital details
+      parameters:
+        - name: hospitalId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Hospital details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HospitalDetail"
+        "404":
+          description: Hospital not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateHospital
+      tags: [hospitals]
+      summary: Update a hospital
+      parameters:
+        - name: hospitalId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HospitalInput"
+      responses:
+        "200":
+          description: Hospital updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hospital"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Hospital not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteHospital
+      tags: [hospitals]
+      summary: Delete a hospital
+      parameters:
+        - name: hospitalId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Hospital deleted
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Hospital not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /hospitals/{hospitalId}/availability:
+    put:
+      operationId: updateHospitalAvailability
+      tags: [hospitals]
+      summary: Update hospital bed and ICU availability
+      parameters:
+        - name: hospitalId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HospitalAvailabilityUpdate"
+      responses:
+        "200":
+          description: Availability updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hospital"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Hospital not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /ai/chat:
     post:
@@ -406,6 +594,131 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AiReply"
+
+  /ai/health-insights:
+    post:
+      operationId: aiHealthInsights
+      tags: [ai]
+      summary: Generate AI health insights from vitals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiHealthInsightInput"
+      responses:
+        "200":
+          description: Health insights
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiHealthInsightOutput"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/emergency-assessment:
+    post:
+      operationId: aiEmergencyAssessment
+      tags: [ai]
+      summary: Assess emergency risk from vitals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiEmergencyAssessmentInput"
+      responses:
+        "200":
+          description: Emergency assessment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiEmergencyAssessmentOutput"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/doctor-summary:
+    post:
+      operationId: aiDoctorSummary
+      tags: [ai]
+      summary: Generate doctor-ready clinical summary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiDoctorSummaryInput"
+      responses:
+        "200":
+          description: Doctor summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiDoctorSummaryOutput"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/scheme-recommendations:
+    post:
+      operationId: aiSchemeRecommendations
+      tags: [ai]
+      summary: Recommend healthcare schemes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiSchemeRecommendationInput"
+      responses:
+        "200":
+          description: Scheme recommendations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiSchemeRecommendationOutput"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/hospital-recommendations:
+    post:
+      operationId: aiHospitalRecommendations
+      tags: [ai]
+      summary: Recommend hospitals for patient needs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiHospitalRecommendationInput"
+      responses:
+        "200":
+          description: Hospital recommendations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiHospitalRecommendationOutput"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -762,28 +1075,189 @@ components:
 
     Hospital:
       type: object
-      required: [id, name, address, phone, specialties, bedsAvailable, icuAvailable]
+      required:
+        - id
+        - name
+        - imageUrl
+        - description
+        - address
+        - city
+        - state
+        - phone
+        - email
+        - specialties
+        - totalBeds
+        - availableBeds
+        - totalICUBeds
+        - availableICUBeds
+        - emergencyAvailable
+        - ambulanceAvailable
+        - createdAt
       properties:
         id:
           type: integer
         name:
           type: string
+        imageUrl:
+          type: string
+        description:
+          type: string
         address:
+          type: string
+        city:
+          type: string
+        state:
           type: string
         phone:
           type: string
+        email:
+          type: string
+        website:
+          type: ["string", "null"]
         specialties:
           type: array
           items:
             type: string
-        bedsAvailable:
+        totalBeds:
           type: integer
-        icuAvailable:
+        availableBeds:
           type: integer
+        totalICUBeds:
+          type: integer
+        availableICUBeds:
+          type: integer
+        emergencyAvailable:
+          type: boolean
+        ambulanceAvailable:
+          type: boolean
         rating:
           type: ["number", "null"]
-        distance:
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    HospitalInput:
+      type: object
+      required:
+        - name
+        - imageUrl
+        - description
+        - address
+        - city
+        - state
+        - phone
+        - email
+        - specialties
+        - totalBeds
+        - availableBeds
+        - totalICUBeds
+        - availableICUBeds
+        - emergencyAvailable
+        - ambulanceAvailable
+      properties:
+        name:
+          type: string
+        imageUrl:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        website:
           type: ["string", "null"]
+        specialties:
+          type: array
+          items:
+            type: string
+        totalBeds:
+          type: integer
+        availableBeds:
+          type: integer
+        totalICUBeds:
+          type: integer
+        availableICUBeds:
+          type: integer
+        emergencyAvailable:
+          type: boolean
+        ambulanceAvailable:
+          type: boolean
+        rating:
+          type: ["number", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+
+    HospitalAvailabilityUpdate:
+      type: object
+      required: [availableBeds, availableICUBeds]
+      properties:
+        availableBeds:
+          type: integer
+        availableICUBeds:
+          type: integer
+
+    HospitalSpecialist:
+      type: object
+      required: [name, specialty, experienceYears]
+      properties:
+        name:
+          type: string
+        specialty:
+          type: string
+        experienceYears:
+          type: integer
+
+    HospitalDetail:
+      allOf:
+        - $ref: "#/components/schemas/Hospital"
+        - type: object
+          required:
+            - imageGallery
+            - specialists
+            - facilities
+            - estimatedWaitingMinutes
+            - bedOccupancyPercent
+            - icuOccupancyPercent
+            - emergencyQueueStatus
+            - loadStatus
+          properties:
+            imageGallery:
+              type: array
+              items:
+                type: string
+            specialists:
+              type: array
+              items:
+                $ref: "#/components/schemas/HospitalSpecialist"
+            facilities:
+              type: array
+              items:
+                type: string
+            estimatedWaitingMinutes:
+              type: integer
+            bedOccupancyPercent:
+              type: number
+            icuOccupancyPercent:
+              type: number
+            emergencyQueueStatus:
+              type: string
+              enum: [Low, Moderate, High]
+            loadStatus:
+              type: string
+              enum: [Low Load, Medium Load, High Load]
 
     AiChatInput:
       type: object
@@ -805,3 +1279,270 @@ components:
           type: array
           items:
             type: string
+
+    AiVitalMeasurement:
+      type: object
+      required: [heartRate, systolicBp, diastolicBp, spo2, glucose, temperature]
+      properties:
+        heartRate:
+          type: number
+        systolicBp:
+          type: number
+        diastolicBp:
+          type: number
+        spo2:
+          type: number
+        glucose:
+          type: number
+        temperature:
+          type: number
+        status:
+          type: string
+        recordedAt:
+          type: string
+
+    AiHealthInsightInput:
+      type: object
+      required: [vitals, recentMeasurements]
+      properties:
+        vitals:
+          $ref: "#/components/schemas/AiVitalMeasurement"
+        recentMeasurements:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiVitalMeasurement"
+
+    AiHealthInsightOutput:
+      type: object
+      required: [summary, keyObservations, recommendations, confidence]
+      properties:
+        summary:
+          type: string
+        keyObservations:
+          type: array
+          items:
+            type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+        fallback:
+          type: boolean
+
+    AiPatientProfile:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: number
+        gender:
+          type: string
+        conditions:
+          type: array
+          items:
+            type: string
+        location:
+          type: string
+
+    AiEmergencyAssessmentInput:
+      type: object
+      required: [currentVitals, profile, historicalTrends]
+      properties:
+        currentVitals:
+          $ref: "#/components/schemas/AiVitalMeasurement"
+        profile:
+          $ref: "#/components/schemas/AiPatientProfile"
+        historicalTrends:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiVitalMeasurement"
+
+    AiEmergencySeverity:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, CRITICAL]
+
+    AiEmergencyAssessmentOutput:
+      type: object
+      required: [severity, riskScore, explanation, recommendedAction, confidence]
+      properties:
+        severity:
+          $ref: "#/components/schemas/AiEmergencySeverity"
+        riskScore:
+          type: integer
+        explanation:
+          type: string
+        recommendedAction:
+          type: string
+        confidence:
+          type: number
+        fallback:
+          type: boolean
+
+    AiDoctorSummaryInput:
+      type: object
+      required: [patientHistory, alerts]
+      properties:
+        patientHistory:
+          type: object
+          required: [name, recentVitals]
+          properties:
+            name:
+              type: string
+            conditions:
+              type: array
+              items:
+                type: string
+            recentVitals:
+              type: array
+              items:
+                $ref: "#/components/schemas/AiVitalMeasurement"
+        alerts:
+          type: array
+          items:
+            type: object
+            required: [type, severity, message]
+            properties:
+              type:
+                type: string
+              severity:
+                type: string
+              message:
+                type: string
+              createdAt:
+                type: string
+        previousAssessments:
+          type: array
+          items:
+            type: string
+
+    AiDoctorSummaryOutput:
+      type: object
+      required: [clinicalSummary, criticalAlerts, importantObservations, confidence]
+      properties:
+        clinicalSummary:
+          type: string
+        criticalAlerts:
+          type: array
+          items:
+            type: string
+        importantObservations:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+        fallback:
+          type: boolean
+
+    AiSchemeRecommendationInput:
+      type: object
+      required: [age, gender, incomeCategory, healthConditions, location]
+      properties:
+        age:
+          type: integer
+        gender:
+          type: string
+        incomeCategory:
+          type: string
+        healthConditions:
+          type: array
+          items:
+            type: string
+        location:
+          type: string
+        availableSchemes:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              eligibility:
+                type: string
+
+    AiSchemeRecommendationItem:
+      type: object
+      required: [scheme, eligibilityReason, benefits, score]
+      properties:
+        scheme:
+          type: string
+        eligibilityReason:
+          type: string
+        benefits:
+          type: string
+        score:
+          type: integer
+
+    AiSchemeRecommendationOutput:
+      type: object
+      required: [recommendations, confidence]
+      properties:
+        recommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiSchemeRecommendationItem"
+        confidence:
+          type: number
+        fallback:
+          type: boolean
+
+    AiHospitalRecommendationInput:
+      type: object
+      required: [condition, severity, location, requiredSpecialty]
+      properties:
+        condition:
+          type: string
+        severity:
+          $ref: "#/components/schemas/AiEmergencySeverity"
+        location:
+          type: string
+        requiredSpecialty:
+          type: string
+        availableHospitals:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              city:
+                type: string
+              specialties:
+                type: array
+                items:
+                  type: string
+              emergencyAvailable:
+                type: boolean
+              availableBeds:
+                type: integer
+
+    AiHospitalRecommendationItem:
+      type: object
+      required: [name, specialtyMatch, reason, score]
+      properties:
+        name:
+          type: string
+        specialtyMatch:
+          type: string
+        reason:
+          type: string
+        score:
+          type: integer
+
+    AiHospitalRecommendationOutput:
+      type: object
+      required: [hospitals, confidence]
+      properties:
+        hospitals:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiHospitalRecommendationItem"
+        confidence:
+          type: number
+        fallback:
+          type: boolean

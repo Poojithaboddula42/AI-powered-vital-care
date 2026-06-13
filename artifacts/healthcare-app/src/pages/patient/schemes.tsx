@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useAiSchemeRecommendations } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Landmark, ExternalLink, CheckCircle, Users, Gift } from "lucide-react";
+import { Landmark, ExternalLink, CheckCircle, Users, Gift, Sparkles, Loader2 } from "lucide-react";
+import { GeminiConfidenceBadge } from "@/components/ai/gemini-confidence-badge";
+import type { AiSchemeRecommendationOutput } from "@workspace/api-client-react";
 
 interface Scheme {
   id: number;
@@ -28,10 +33,32 @@ const tagColors: Record<string, string> = {
 };
 
 export default function GovtSchemes() {
+  const { user } = useAuth();
+  const schemeMutation = useAiSchemeRecommendations();
+  const [aiRecommendations, setAiRecommendations] = useState<AiSchemeRecommendationOutput | null>(null);
   const { data: schemes, isLoading } = useQuery<Scheme[]>({
     queryKey: ["schemes"],
     queryFn: () => fetch("/api/schemes").then(r => r.json()),
   });
+
+  const handleAiRecommendations = async () => {
+    if (!schemes) return;
+    const result = await schemeMutation.mutateAsync({
+      data: {
+        age: 35,
+        gender: "unspecified",
+        incomeCategory: "general",
+        healthConditions: [],
+        location: "India",
+        availableSchemes: schemes.map((s) => ({
+          title: s.title,
+          description: s.description,
+          eligibility: s.eligibility,
+        })),
+      },
+    });
+    setAiRecommendations(result);
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
@@ -46,6 +73,18 @@ export default function GovtSchemes() {
           </div>
           <h1 className="text-3xl font-bold mb-2">Health & Welfare Schemes</h1>
           <p className="text-blue-100 max-w-xl">Access government-funded healthcare programs, insurance schemes, and welfare benefits available to you.</p>
+          <div className="flex gap-3 mt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => void handleAiRecommendations()}
+              disabled={!schemes?.length || schemeMutation.isPending}
+            >
+              {schemeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              AI Scheme Match for {user?.name?.split(" ")[0] ?? "You"}
+            </Button>
+          </div>
           <div className="flex gap-6 mt-6">
             <div className="text-center"><div className="text-2xl font-bold">6+</div><div className="text-xs text-blue-200">Active Schemes</div></div>
             <div className="text-center"><div className="text-2xl font-bold">50Cr+</div><div className="text-xs text-blue-200">Beneficiaries</div></div>
@@ -53,6 +92,32 @@ export default function GovtSchemes() {
           </div>
         </div>
       </div>
+
+      {aiRecommendations && (
+        <Card className="border-primary/20">
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Gemini Scheme Recommendations
+              </h2>
+              <GeminiConfidenceBadge confidence={aiRecommendations.confidence} fallback={aiRecommendations.fallback} />
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {aiRecommendations.recommendations.map((rec, i) => (
+                <div key={i} className="rounded-xl border p-4 bg-muted/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-sm">{rec.scheme}</p>
+                    <Badge variant="outline">Score {rec.score}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">{rec.eligibilityReason}</p>
+                  <p className="text-xs">{rec.benefits}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (

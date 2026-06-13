@@ -1,6 +1,22 @@
 import { Router, type IRouter } from "express";
 import { requireAuth, type AuthRequest } from "../lib/auth";
-import { AiChatBody } from "@workspace/api-zod";
+import {
+  AiChatBody,
+  AiHealthInsightsBody,
+  AiEmergencyAssessmentBody,
+  AiDoctorSummaryBody,
+  AiSchemeRecommendationsBody,
+  AiHospitalRecommendationsBody,
+} from "@workspace/api-zod";
+import {
+  healthInsightService,
+  emergencyAssessmentService,
+  doctorSummaryService,
+  schemeRecommendationService,
+  hospitalRecommendationService,
+  isGeminiConfigured,
+} from "@workspace/ai";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -68,6 +84,81 @@ router.post("/ai/chat", requireAuth, async (req: AuthRequest, res): Promise<void
   const { message, context } = parsed.data;
   const response = generateHealthResponse(message, context ?? undefined);
   res.json(response);
+});
+
+router.post("/ai/health-insights", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const parsed = AiHealthInsightsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (!isGeminiConfigured()) {
+    logger.warn("GEMINI_API_KEY not configured; returning fallback health insights");
+  }
+
+  const result = await healthInsightService.analyze(parsed.data);
+  res.json(result);
+});
+
+router.post("/ai/emergency-assessment", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const parsed = AiEmergencyAssessmentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (!isGeminiConfigured()) {
+    logger.warn("GEMINI_API_KEY not configured; returning fallback emergency assessment");
+  }
+
+  const result = await emergencyAssessmentService.assess(parsed.data);
+  res.json(result);
+});
+
+router.post("/ai/doctor-summary", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const parsed = AiDoctorSummaryBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (!isGeminiConfigured()) {
+    logger.warn("GEMINI_API_KEY not configured; returning fallback doctor summary");
+  }
+
+  const result = await doctorSummaryService.summarize(parsed.data);
+  res.json(result);
+});
+
+router.post("/ai/scheme-recommendations", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const parsed = AiSchemeRecommendationsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (!isGeminiConfigured()) {
+    logger.warn("GEMINI_API_KEY not configured; returning fallback scheme recommendations");
+  }
+
+  const result = await schemeRecommendationService.recommend(parsed.data);
+  res.json(result);
+});
+
+router.post("/ai/hospital-recommendations", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const parsed = AiHospitalRecommendationsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (!isGeminiConfigured()) {
+    logger.warn("GEMINI_API_KEY not configured; returning fallback hospital recommendations");
+  }
+
+  const result = await hospitalRecommendationService.recommend(parsed.data);
+  res.json(result);
 });
 
 export default router;

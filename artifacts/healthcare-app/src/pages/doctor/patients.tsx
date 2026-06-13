@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { useGetPatients, type PatientSummary } from "@workspace/api-client-react";
+import { useGetPatients, useAiDoctorSummary, type PatientSummary } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Activity, HeartPulse, Droplets, Phone, BarChart3, User, TrendingUp, Clock } from "lucide-react";
+import { Search, Activity, HeartPulse, Droplets, Phone, BarChart3, User, TrendingUp, Clock, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GeminiConfidenceBadge } from "@/components/ai/gemini-confidence-badge";
+import type { AiDoctorSummaryOutput } from "@workspace/api-client-react";
 
 const STATUS_COLORS: Record<string, string> = {
   normal: "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -17,8 +19,33 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function DoctorPatients() {
   const { data: patients, isLoading } = useGetPatients();
+  const doctorSummaryMutation = useAiDoctorSummary();
   const [search, setSearch] = useState("");
   const [chartPatient, setChartPatient] = useState<PatientSummary | null>(null);
+  const [doctorSummary, setDoctorSummary] = useState<AiDoctorSummaryOutput | null>(null);
+
+  const handleDoctorSummary = async (patient: PatientSummary) => {
+    const result = await doctorSummaryMutation.mutateAsync({
+      data: {
+        patientHistory: {
+          name: patient.name,
+          recentVitals: [{
+            heartRate: patient.latestHeartRate ?? 0,
+            systolicBp: Number(String(patient.latestBp).split("/")[0]) || 0,
+            diastolicBp: Number(String(patient.latestBp).split("/")[1]) || 0,
+            spo2: patient.latestSpo2 ?? 0,
+            glucose: 0,
+            temperature: 37,
+            status: patient.overallStatus,
+          }],
+        },
+        alerts: patient.overallStatus === "critical"
+          ? [{ type: "status", severity: "critical", message: `${patient.name} is in critical status.` }]
+          : [],
+      },
+    });
+    setDoctorSummary(result);
+  };
 
   const filtered = patients?.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -115,6 +142,16 @@ export default function DoctorPatients() {
                     <Button variant="secondary" size="sm" className="gap-1.5" onClick={() => setChartPatient(patient)}>
                       <BarChart3 className="h-3.5 w-3.5" /> View Chart
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => void handleDoctorSummary(patient)}
+                      disabled={doctorSummaryMutation.isPending}
+                    >
+                      {doctorSummaryMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                      AI Summary
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -175,6 +212,37 @@ export default function DoctorPatients() {
                   ⚠ Critical status — immediate attention recommended
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!doctorSummary} onOpenChange={(open) => !open && setDoctorSummary(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Gemini Clinical Summary
+              </span>
+              {doctorSummary && (
+                <GeminiConfidenceBadge confidence={doctorSummary.confidence} fallback={doctorSummary.fallback} />
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {doctorSummary && (
+            <div className="space-y-4 text-sm">
+              <p className="leading-relaxed">{doctorSummary.clinicalSummary}</p>
+              {doctorSummary.criticalAlerts.length > 0 && (
+                <div className="space-y-1">
+                  <p className="font-semibold text-destructive">Critical Alerts</p>
+                  {doctorSummary.criticalAlerts.map((a, i) => <p key={i}>• {a}</p>)}
+                </div>
+              )}
+              <div className="space-y-1">
+                <p className="font-semibold">Important Observations</p>
+                {doctorSummary.importantObservations.map((o, i) => <p key={i}>• {o}</p>)}
+              </div>
             </div>
           )}
         </DialogContent>

@@ -1,10 +1,17 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/contexts/language-context";
+import { useGetLatestVitals, useGetVitals, useAiHealthInsights } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Brain, CheckCircle, AlertTriangle, TrendingUp, Heart, Activity, Info } from "lucide-react";
+import { Brain, CheckCircle, AlertTriangle, TrendingUp, Heart, Activity, Info, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GeminiConfidenceBadge } from "@/components/ai/gemini-confidence-badge";
+import { mapVitalToAiMeasurement } from "@/lib/ai-vitals";
+import type { AiHealthInsightOutput } from "@workspace/api-client-react";
 
 interface Insight {
   type: string;
@@ -64,11 +71,28 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 export default function AiInsights() {
+  const { user } = useAuth();
   const { t } = useLanguage();
+  const [geminiInsights, setGeminiInsights] = useState<AiHealthInsightOutput | null>(null);
+  const healthInsightsMutation = useAiHealthInsights();
+  const { data: latestVitals } = useGetLatestVitals({ userId: user?.id });
+  const { data: recentVitals } = useGetVitals({ userId: user?.id, limit: 10 });
+
   const { data, isLoading } = useQuery<InsightsData>({
     queryKey: ["insights"],
     queryFn: () => fetchWithAuth("/api/insights"),
   });
+
+  const handleGeminiAnalysis = async () => {
+    if (!latestVitals) return;
+    const result = await healthInsightsMutation.mutateAsync({
+      data: {
+        vitals: mapVitalToAiMeasurement(latestVitals),
+        recentMeasurements: (recentVitals ?? []).map(mapVitalToAiMeasurement),
+      },
+    });
+    setGeminiInsights(result);
+  };
 
   const goodCount = data?.insights.filter(i => i.severity === "good").length ?? 0;
   const warnCount = data?.insights.filter(i => i.severity === "warning").length ?? 0;
@@ -89,6 +113,20 @@ export default function AiInsights() {
             {data.period} • {data.recordCount} {t("readings")}
           </Badge>
         )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 shrink-0"
+          onClick={handleGeminiAnalysis}
+          disabled={!latestVitals || healthInsightsMutation.isPending}
+        >
+          {healthInsightsMutation.isPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+          )}
+          Gemini Analysis
+        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -140,6 +178,39 @@ export default function AiInsights() {
           </CardContent>
         </Card>
       </div>
+
+      {geminiInsights && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Gemini Health Insights
+              </CardTitle>
+              <GeminiConfidenceBadge confidence={geminiInsights.confidence} fallback={geminiInsights.fallback} />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">{geminiInsights.summary}</p>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Key Observations</p>
+              <ul className="space-y-1">
+                {geminiInsights.keyObservations.map((obs, i) => (
+                  <li key={i} className="text-sm flex gap-2"><span className="text-primary">•</span>{obs}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Recommendations</p>
+              <ul className="space-y-1">
+                {geminiInsights.recommendations.map((rec, i) => (
+                  <li key={i} className="text-sm flex gap-2"><span className="text-emerald-600">•</span>{rec}</li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div>
         <h2 className="text-lg font-semibold mb-4">Detailed Insights</h2>
